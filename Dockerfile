@@ -8,7 +8,7 @@ COPY Cargo.toml Cargo.lock ./
 
 RUN cargo build --release
 
-FROM slim-buster
+FROM debian:buster-slim
 COPY --from=build /usr/src/void-leo/target/release/void-leo/ /
 USER 1000
 CMD ["./void-leo"]
