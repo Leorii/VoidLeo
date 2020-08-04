@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use serenity::{
     client::Client,
     framework::standard::{
@@ -40,7 +42,7 @@ fn main() {
 }
 
 #[command]
-fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+fn Ping(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "Pong!")?;
 
     Ok(())
