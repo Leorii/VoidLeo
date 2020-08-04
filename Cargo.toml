@@ -1,5 +1,5 @@
 [package]
-name = "leo-bot"
+name = "void-leo"
 version = "0.1.0"
 authors = ["leorii"]
 edition = "2018"
