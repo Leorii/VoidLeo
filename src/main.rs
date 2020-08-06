@@ -20,13 +20,13 @@ struct Handler;
 impl EventHandler for Handler {}
 
 fn main() {
-    let token = env::var("DISCORD_TOKEN").expect("token missing");
+    let token = env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN missing");
     fn create_client(token: &str) -> Client {
         let mut client = Client::new(token, Handler).expect("Error creating client");
 
         client.with_framework(
             StandardFramework::new()
-                .configure(|c| c.prefix("0x"))
+                .configure(|c| c.prefix("::"))
                 .group(&GENERAL_GROUP),
         );
         client
