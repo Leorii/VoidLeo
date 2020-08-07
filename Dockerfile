@@ -1,14 +1,17 @@
 FROM rust:1.45-slim-buster AS build
 WORKDIR /usr/src
 
-RUN USER=root cargo new void-leo
-WORKDIR /usr/src/void-leo
-COPY src ./src
+RUN USER=root cargo new voidleo
+WORKDIR /usr/src/voidleo
 COPY Cargo.toml Cargo.lock ./
+RUN cargo build --release
+RUN rm src/*.rs
+RUN rm target/release/deps/voidleo*
 
+COPY src ./src
 RUN cargo build --release
 
 FROM debian:buster-slim
-COPY --from=build /usr/src/void-leo/target/release/void-leo/ /
+COPY --from=build /usr/src/voidleo/target/release/voidleo /
 USER 1000
-CMD ["./void-leo"]
+CMD ["./voidleo"]
