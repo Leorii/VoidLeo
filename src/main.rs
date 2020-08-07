@@ -28,7 +28,26 @@ struct General;
 
 struct Handler;
 
-impl EventHandler for Handler {}
+impl EventHandler for Handler {
+    fn message(&self, ctx: Context, msg: Message) {
+        let config = CONFIG.read().unwrap();
+
+        // Handles emoji pings if enabled in config
+        if let Some(ref emoji_pings) = config.emoji_pings {
+            for user_id in emoji_pings
+                .iter()
+                .filter(|ep| ep.emoji == msg.content)
+                .map(|ep| &ep.user_id)
+            {
+                if let Some(ping) =
+                    util::send_msg(&ctx, &msg.channel_id, format!("<@{}>", user_id)).ok()
+                {
+                    ping.delete(&ctx).ok();
+                }
+            }
+        }
+    }
+}
 
 fn main() {
     let config = {
