@@ -1,0 +1,6 @@
+AppConfig (
+    discord_token: "CHANGE_ME",
+    guild_owner_id: "CHANGE_ME",
+    bot_id: "CHANGE_ME",
+    emoji_pings: None,
+)
