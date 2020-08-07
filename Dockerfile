@@ -13,5 +13,6 @@ RUN cargo build --release
 
 FROM debian:buster-slim
 COPY --from=build /usr/src/voidleo/target/release/voidleo /
+COPY config.ron ./
 USER 1000
 CMD ["./voidleo"]

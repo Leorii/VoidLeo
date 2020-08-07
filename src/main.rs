@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 use serde_json::json;
 use serenity::{
     client::Client,
@@ -8,8 +11,16 @@ use serenity::{
     model::channel::Message,
     prelude::{Context, EventHandler},
 };
-use std::env;
-use voidleo::{color, util};
+use std::sync::RwLock;
+use voidleo::{
+    color,
+    config::{self, AppConfig},
+    util,
+};
+
+lazy_static! {
+    static ref CONFIG: RwLock<AppConfig> = RwLock::new(AppConfig::default());
+}
 
 #[group]
 #[commands(ping, lurker_prune)]
@@ -20,7 +31,11 @@ struct Handler;
 impl EventHandler for Handler {}
 
 fn main() {
-    let token = env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN missing");
+    let config = {
+        let mut config = CONFIG.write().unwrap();
+        *config = config::from_file("./config.ron");
+        CONFIG.read().unwrap()
+    };
     fn create_client(token: &str) -> Client {
         let mut client = Client::new(token, Handler).expect("Error creating client");
 
@@ -38,7 +53,7 @@ fn main() {
         }
     }
 
-    start_client(create_client(&token));
+    start_client(create_client(&config.discord_token));
 }
 
 #[command]
@@ -50,25 +65,9 @@ fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 
 #[command]
 fn lurker_prune(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let owner_id = match env::var("DISCORD_OWNER_ID").ok() {
-        Some(id) => id,
-        None => {
-            util::send_map(
-                ctx,
-                &msg.channel_id,
-                json!({
-                    "tts": false,
-                    "embed": {
-                        "description": "**DISCORD_OWNER_ID missing. Check configuration.**",
-                        "color": color::LUMINOUS_VIVID_PINK
-                    }
-                }),
-            )?;
-            return Ok(());
-        }
-    };
+    let config = CONFIG.read().unwrap();
 
-    if msg.author.id.0.to_string() != owner_id {
+    if msg.author.id.0.to_string() != config.guild_owner_id {
         util::send_map(
             ctx,
             &msg.channel_id,
