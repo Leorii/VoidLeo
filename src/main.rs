@@ -50,29 +50,22 @@ impl EventHandler for Handler {
 }
 
 fn main() {
-    let config = {
+    {
         let mut config = CONFIG.write().unwrap();
         *config = config::from_file("./config.ron");
-        CONFIG.read().unwrap()
-    };
-    fn create_client(token: &str) -> Client {
-        let mut client = Client::new(token, Handler).expect("Error creating client");
-
-        client.with_framework(
-            StandardFramework::new()
-                .configure(|c| c.prefix("::"))
-                .group(&GENERAL_GROUP),
-        );
-        client
     }
+    let config = CONFIG.read().unwrap();
 
-    fn start_client(mut client: Client) {
-        if let Err(e) = client.start() {
-            println!("An error occurred while running the client: {:?}", e);
-        }
+    let mut client = Client::new(&config.discord_token, Handler).expect("Error creating client");
+    client.with_framework(
+        StandardFramework::new()
+            .configure(|c| c.prefix("::"))
+            .group(&GENERAL_GROUP),
+    );
+
+    if let Err(e) = client.start() {
+        println!("An error occurred while running the client: {:?}", e);
     }
-
-    start_client(create_client(&config.discord_token));
 }
 
 #[command]
