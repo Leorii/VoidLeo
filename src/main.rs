@@ -12,11 +12,7 @@ use serenity::{
     prelude::{Context, EventHandler},
 };
 use std::sync::RwLock;
-use voidleo::{
-    color,
-    config::{self, AppConfig},
-    util,
-};
+use voidleo::{color, config::AppConfig, util};
 
 lazy_static! {
     static ref CONFIG: RwLock<AppConfig> = RwLock::new(AppConfig::default());
@@ -52,7 +48,7 @@ impl EventHandler for Handler {
 fn main() {
     {
         let mut config = CONFIG.write().unwrap();
-        *config = config::from_file("./config.ron");
+        *config = AppConfig::from_file("./config.ron");
     }
     let config = CONFIG.read().unwrap();
 
