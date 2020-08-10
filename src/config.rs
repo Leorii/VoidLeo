@@ -5,23 +5,23 @@ use std::{fs, path::Path};
 #[derive(Default, Deserialize, Serialize)]
 pub struct AppConfig {
     pub discord_token: String,
-    pub guild_owner_id: String,
-    pub bot_id: String,
     pub emoji_pings: Option<Vec<EmojiPingConfig>>,
     pub lurker_purge: Option<LurkerPurgeConfig>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct EmojiPingConfig {
-    pub user_id: String,
-    pub emoji: String,
+    pub user_id: u64,
+    pub emojis: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct LurkerPurgeConfig {
-    pub channel_id: usize,
+    pub channel_id: u64,
     pub grace_period_days: u16,
     pub immune_roles: Vec<String>,
+    pub message: String,
+    pub authorized_user_ids: Vec<u64>,
 }
 
 impl AppConfig {

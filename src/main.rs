@@ -8,7 +8,10 @@ use serenity::{
         macros::{command, group},
         CommandResult, StandardFramework,
     },
-    model::channel::Message,
+    model::{
+        channel::{Message, ReactionType},
+        id::{ChannelId, EmojiId},
+    },
     prelude::{Context, EventHandler},
 };
 use std::sync::RwLock;
@@ -19,7 +22,7 @@ lazy_static! {
 }
 
 #[group]
-#[commands(ping, lurker_prune)]
+#[commands(ping, lurker_purge)]
 struct General;
 
 struct Handler;
@@ -32,7 +35,7 @@ impl EventHandler for Handler {
         if let Some(ref emoji_pings) = config.emoji_pings {
             for user_id in emoji_pings
                 .iter()
-                .filter(|ep| ep.emoji == msg.content)
+                .filter(|ep| ep.emojis.iter().any(|e| e == &msg.content))
                 .map(|ep| &ep.user_id)
             {
                 if let Some(ping) =
@@ -72,28 +75,52 @@ fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-fn lurker_prune(ctx: &mut Context, msg: &Message) -> CommandResult {
+fn lurker_purge(ctx: &mut Context, msg: &Message) -> CommandResult {
     let config = CONFIG.read().unwrap();
 
-    if msg.author.id.0.to_string() != config.guild_owner_id {
-        util::send_map(
-            ctx,
-            &msg.channel_id,
-            json!({
-                "tts": false,
-                "embed": {
-                    "title": "[ ACCESS DENIED ]",
-                    "color": color::RED
-                }
-            }),
+    if let Some(ref purge_config) = config.lurker_purge {
+        if !purge_config
+            .authorized_user_ids
+            .iter()
+            .any(|id| id == &msg.author.id.0)
+        {
+            util::send_map(
+                ctx,
+                &msg.channel_id,
+                json!({
+                    "tts": false,
+                    "embed": {
+                        "title": "[ ACCESS DENIED ]",
+                        "color": color::RED
+                    }
+                }),
+            )?;
+            return Ok(());
+        }
+
+        util::send_basic_embed(
+            &ctx,
+            &ChannelId(purge_config.channel_id),
+            &purge_config.message,
+        )?
+        .react(
+            &ctx,
+            ReactionType::Custom {
+                animated: false,
+                id: EmojiId(731955992647958641),
+                name: Some("happybagelday".to_string()),
+            },
         )?;
-        return Ok(());
+    } else {
+        let map = json!({
+            "tts": false,
+            "embed": {
+                "description": "[ ERROR ]: No configuration for lurker_purge",
+                "color": color::LUMINOUS_VIVID_PINK
+            }
+        });
+        util::send_map(&ctx, &msg.channel_id, map)?;
     }
 
-    util::send_basic_embed(
-        ctx,
-        &msg.channel_id,
-        "Yo!\n\nThis is a test. Don't mind me. <:happybagelday:731955992647958641>",
-    )?;
     Ok(())
 }
