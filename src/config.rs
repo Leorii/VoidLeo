@@ -5,6 +5,7 @@ use std::{fs, path::Path};
 #[derive(Default, Deserialize, Serialize)]
 pub struct AppConfig {
     pub discord_token: String,
+    pub guild_id: u64,
     pub emoji_pings: Option<Vec<EmojiPingConfig>>,
     pub lurker_purge: Option<LurkerPurgeConfig>,
 }
@@ -18,8 +19,8 @@ pub struct EmojiPingConfig {
 #[derive(Deserialize, Serialize)]
 pub struct LurkerPurgeConfig {
     pub channel_id: u64,
-    pub grace_period_days: u16,
-    pub immune_roles: Vec<String>,
+    pub grace_period_days: u64,
+    pub immune_roles: Vec<u64>,
     pub message: String,
     pub authorized_user_ids: Vec<u64>,
 }
