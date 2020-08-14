@@ -30,7 +30,7 @@ impl LurkerPurge<'_> {
                 .ok()
                 .map(|x| x.into_iter().last())
             {
-                // If last message was not a purge announcement, so do not attempt to purge users
+                // If last message was not a purge announcement, do not attempt to purge users
                 let content = message
                     .embeds
                     .get(0)
@@ -39,38 +39,7 @@ impl LurkerPurge<'_> {
                     return;
                 }
 
-                let elapsed_grace_period = Utc::now().timestamp() - message.timestamp.timestamp();
-                let remaining_grace_period =
-                    (purge_config.grace_period_days * SECONDS_IN_DAY) - elapsed_grace_period as u64;
-                let sleep_duration = Duration::from_secs(remaining_grace_period);
-
-                let config = config.clone();
-                thread::spawn(move || {
-                    thread::sleep(sleep_duration);
-                    let reaction_users = channel_id
-                        .reaction_users(
-                            &ctx,
-                            message.id,
-                            ReactionType::Custom {
-                                animated: false,
-                                id: EmojiId(731955992647958641),
-                                name: Some("happybagelday".to_string()),
-                            },
-                            None,
-                            None,
-                        )
-                        .unwrap();
-
-                    let inactive_members =
-                        kick_inactive_members(config.clone(), &ctx, &reaction_users);
-
-                    announce_results_of_purge(
-                        config.clone(),
-                        &ctx,
-                        &reaction_users,
-                        &inactive_members,
-                    );
-                });
+                wait_for_grace_period_and_do_purge(config, ctx, message);
             }
         }
     }
@@ -100,9 +69,44 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
                     name: Some("happybagelday".to_string()),
                 },
             )?;
+
+            wait_for_grace_period_and_do_purge(self.config.clone(), self.ctx.clone(), message);
         }
 
         Ok(())
+    }
+}
+
+fn wait_for_grace_period_and_do_purge(config: Arc<AppConfig>, ctx: Context, message: Message) {
+    if let Some(ref purge_config) = config.lurker_purge {
+        let sleep_duration = {
+            let elapsed_grace_period = Utc::now().timestamp() - message.timestamp.timestamp();
+            let remaining_grace_period =
+                (purge_config.grace_period_days * SECONDS_IN_DAY) - elapsed_grace_period as u64;
+
+            Duration::from_secs(remaining_grace_period)
+        };
+
+        thread::spawn(move || {
+            thread::sleep(sleep_duration);
+            let reaction_users = ChannelId(config.lurker_purge.as_ref().unwrap().channel_id)
+                .reaction_users(
+                    &ctx,
+                    message.id,
+                    ReactionType::Custom {
+                        animated: false,
+                        id: EmojiId(731955992647958641),
+                        name: Some("happybagelday".to_string()),
+                    },
+                    None,
+                    None,
+                )
+                .unwrap();
+
+            let inactive_members = kick_inactive_members(config.clone(), &ctx, &reaction_users);
+
+            announce_results_of_purge(config.clone(), &ctx, &reaction_users, &inactive_members);
+        });
     }
 }
 
