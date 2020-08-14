@@ -1,6 +1,5 @@
-use crate::{color, command::CustomCommand, config::AppConfig, util};
+use crate::{command::CustomCommand, config::AppConfig, util};
 use chrono::Utc;
-use serde_json::json;
 use serenity::{
     framework::standard::CommandResult,
     model::{
@@ -17,7 +16,7 @@ const SECONDS_IN_DAY: u64 = 86_400;
 
 pub struct LurkerPurge<'a> {
     ctx: &'a Context,
-    msg: &'a Message,
+    _msg: &'a Message,
     config: Arc<AppConfig>,
 }
 
@@ -82,31 +81,12 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
         LurkerPurge {
             config: AppConfig::get_arc(),
             ctx,
-            msg,
+            _msg: msg,
         }
     }
 
     fn exec(&self) -> CommandResult {
         if let Some(ref purge_config) = self.config.lurker_purge {
-            if !purge_config
-                .authorized_user_ids
-                .iter()
-                .any(|id| id == &self.msg.author.id.0)
-            {
-                util::send_map(
-                    self.ctx,
-                    &self.msg.channel_id,
-                    json!({
-                        "tts": false,
-                        "embed": {
-                            "title": "[ ACCESS DENIED ]",
-                            "color": color::RED
-                        }
-                    }),
-                )?;
-                return Ok(());
-            }
-
             let message = util::send_basic_embed(
                 self.ctx,
                 &ChannelId(purge_config.channel_id),

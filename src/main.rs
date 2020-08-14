@@ -22,7 +22,7 @@ fn main() {
         .expect("Error creating client");
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.prefix("::"))
+            .configure(|c| c.prefix("::").owners(config.owners.clone()))
             .group(&GENERAL_GROUP),
     );
 
@@ -39,6 +39,7 @@ fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[owners_only]
 fn lurker_purge(ctx: &mut Context, msg: &Message) -> CommandResult {
     command::LurkerPurge::new(ctx, msg).exec()
 }

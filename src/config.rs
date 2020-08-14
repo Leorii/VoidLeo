@@ -1,7 +1,8 @@
 use lazy_static::lazy_static;
 use ron;
 use serde::Deserialize;
-use std::{fs, sync::Arc};
+use serenity::model::id::UserId;
+use std::{collections::HashSet, fs, sync::Arc};
 
 lazy_static! {
     static ref CONFIG: Arc<AppConfig> = Arc::new(AppConfig::init());
@@ -11,6 +12,7 @@ lazy_static! {
 pub struct AppConfig {
     pub discord_token: String,
     pub guild_id: u64,
+    pub owners: HashSet<UserId>,
     pub emoji_pings: Option<Vec<EmojiPingConfig>>,
     pub lurker_purge: Option<LurkerPurgeConfig>,
 }
