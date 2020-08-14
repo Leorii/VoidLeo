@@ -110,6 +110,19 @@ fn wait_for_grace_period_and_do_purge(config: Arc<AppConfig>, ctx: Context, mess
     }
 }
 
+fn kick_inactive_members(
+    config: Arc<AppConfig>,
+    ctx: &Context,
+    reaction_users: &Vec<User>,
+) -> Vec<Member> {
+    let inactive = inactive_members(config.clone(), &ctx, reaction_users);
+
+    for user in inactive.iter() {
+        user.kick_with_reason(ctx, "Kicked for inactivity").ok();
+    }
+    inactive
+}
+
 fn inactive_members(
     config: Arc<AppConfig>,
     ctx: &Context,
@@ -132,43 +145,6 @@ fn inactive_members(
                 })
         })
         .collect()
-}
-
-fn active_members(
-    config: Arc<AppConfig>,
-    ctx: &Context,
-    reaction_users: &Vec<User>,
-) -> Vec<Member> {
-    let purge_config = config.lurker_purge.as_ref().unwrap();
-    GuildId(config.guild_id)
-        .members_iter(&ctx)
-        .map(|m| m.unwrap())
-        .filter(|m| reaction_users.iter().any(|r| r.id == m.user.read().id))
-        .filter(|m| {
-            !purge_config
-                .immune_roles
-                .iter()
-                .map(|&x| RoleId(x))
-                .any(|immune_role| {
-                    m.roles
-                        .iter()
-                        .any(|&member_role| member_role == immune_role)
-                })
-        })
-        .collect()
-}
-
-fn kick_inactive_members(
-    config: Arc<AppConfig>,
-    ctx: &Context,
-    reaction_users: &Vec<User>,
-) -> Vec<Member> {
-    let inactive = inactive_members(config.clone(), &ctx, reaction_users);
-
-    for user in inactive.iter() {
-        user.kick_with_reason(ctx, "Kicked for inactivity").ok();
-    }
-    inactive
 }
 
 fn announce_results_of_purge(
@@ -201,4 +177,28 @@ fn announce_results_of_purge(
     );
 
     util::send_basic_embed(ctx, &channel_id, message).ok();
+}
+
+fn active_members(
+    config: Arc<AppConfig>,
+    ctx: &Context,
+    reaction_users: &Vec<User>,
+) -> Vec<Member> {
+    let purge_config = config.lurker_purge.as_ref().unwrap();
+    GuildId(config.guild_id)
+        .members_iter(&ctx)
+        .map(|m| m.unwrap())
+        .filter(|m| reaction_users.iter().any(|r| r.id == m.user.read().id))
+        .filter(|m| {
+            !purge_config
+                .immune_roles
+                .iter()
+                .map(|&x| RoleId(x))
+                .any(|immune_role| {
+                    m.roles
+                        .iter()
+                        .any(|&member_role| member_role == immune_role)
+                })
+        })
+        .collect()
 }
