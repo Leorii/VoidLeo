@@ -1,4 +1,4 @@
-use crate::{command::CustomCommand, config::AppConfig, util};
+use crate::{command::CustomCommand, config::AppConfig, util::msg};
 use chrono::Utc;
 use serenity::{
     framework::standard::CommandResult,
@@ -56,7 +56,7 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
 
     fn exec(&self) -> CommandResult {
         if let Some(ref purge_config) = self.config.lurker_purge {
-            let message = util::send_basic_embed(
+            let message = msg::send_basic_embed(
                 self.ctx,
                 &ChannelId(purge_config.channel_id),
                 &purge_config.message,
@@ -176,7 +176,7 @@ fn announce_results_of_purge(
         kicked, survivors
     );
 
-    util::send_basic_embed(ctx, &channel_id, message).ok();
+    msg::send_basic_embed(ctx, &channel_id, message).ok();
 }
 
 fn active_members(

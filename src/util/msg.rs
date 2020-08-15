@@ -1,8 +1,9 @@
-use super::color;
+use crate::color;
 use serde_json::{json, Value};
 use serenity::{
     http::CacheHttp,
     model::{channel::Message, id::ChannelId},
+    prelude::Context,
     Result,
 };
 
@@ -12,8 +13,8 @@ pub struct Embed {
     pub color: Option<usize>,
 }
 
-pub fn send_msg(
-    ctx: impl CacheHttp,
+pub fn send_text(
+    ctx: &Context,
     channel_id: &ChannelId,
     content: impl AsRef<str>,
 ) -> Result<Message> {
@@ -25,7 +26,7 @@ pub fn send_msg(
 }
 
 pub fn send_basic_embed(
-    ctx: impl CacheHttp,
+    ctx: &Context,
     channel_id: &ChannelId,
     content: impl AsRef<str>,
 ) -> Result<Message> {
@@ -39,6 +40,6 @@ pub fn send_basic_embed(
     send_map(ctx, channel_id, map)
 }
 
-pub fn send_map(ctx: impl CacheHttp, channel_id: &ChannelId, map: Value) -> Result<Message> {
+pub fn send_map(ctx: &Context, channel_id: &ChannelId, map: Value) -> Result<Message> {
     ctx.http().send_message(channel_id.0, &map)
 }
