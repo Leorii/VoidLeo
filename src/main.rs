@@ -1,3 +1,5 @@
+extern crate env_logger;
+
 use serenity::{
     client::Client,
     framework::standard::{
@@ -17,6 +19,8 @@ use voidleo::{
 struct General;
 
 fn main() {
+    env_logger::init();
+
     let config = AppConfig::get_arc();
     let mut client = Client::new(&config.discord_token, Handler::new(config.clone()))
         .expect("Error creating client");
