@@ -1,6 +1,11 @@
 use crate::{command, util::Logger, AppConfig};
 use serenity::{
-    model::{channel::Message, gateway::Ready, id::ChannelId},
+    model::{
+        channel::Message,
+        gateway::Ready,
+        guild::Member,
+        id::{ChannelId, GuildId},
+    },
     prelude::{Context, EventHandler},
 };
 use std::sync::Arc;
@@ -55,6 +60,37 @@ impl EventHandler for Handler {
                         .ok();
                 }
             }
+        }
+    }
+
+    fn guild_member_addition(&self, ctx: Context, _guild_id: GuildId, new_member: Member) {
+        let logger = Logger::new(
+            self.config
+                .log_channel_id
+                .map(|id| (ctx.clone(), ChannelId(id))),
+        );
+
+        // Handles new member welcome messages if enabled in config
+        if let Some(welcome_config) = &self.config.new_member_welcome {
+            let channel_id = ChannelId(welcome_config.channel_id);
+            let user_ping = format!("<@{}>", new_member.user.read().id);
+            let message = if let Some(i) = welcome_config.ping_insert_idx {
+                let mut m = welcome_config.message.clone();
+                m.insert_str(i, &user_ping);
+                m
+            } else {
+                welcome_config.message.clone()
+            };
+
+            channel_id
+                .say(ctx, message)
+                .map_err(|e| {
+                    logger.error(&format!(
+                        "Unable to send welcome message to {}: {}",
+                        user_ping, e
+                    ))
+                })
+                .ok();
         }
     }
 }

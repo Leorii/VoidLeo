@@ -153,8 +153,8 @@ fn kick_inactive_members(
                 user.name
             )),
             Err(e) => logger.error(&format!(
-                "Unable to kick **{}** (id: **{}**) during purge: {}",
-                user.name, user.id, e
+                "Unable to kick <@{}> during purge: {}",
+                user.id, e
             )),
         }
     }

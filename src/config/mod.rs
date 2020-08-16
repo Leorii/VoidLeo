@@ -14,8 +14,16 @@ pub struct AppConfig {
     pub guild_id: u64,
     pub owners: HashSet<UserId>,
     pub log_channel_id: Option<u64>,
+    pub new_member_welcome: Option<NewMemberWelcome>,
     pub emoji_pings: Option<Vec<EmojiPingConfig>>,
     pub lurker_purge: Option<LurkerPurgeConfig>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct NewMemberWelcome {
+    pub message: String,
+    pub channel_id: u64,
+    pub ping_insert_idx: Option<usize>,
 }
 
 #[derive(Clone, Deserialize)]
