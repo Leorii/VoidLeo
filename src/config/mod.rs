@@ -13,6 +13,7 @@ pub struct AppConfig {
     pub discord_token: String,
     pub guild_id: u64,
     pub owners: HashSet<UserId>,
+    pub log_channel_id: Option<u64>,
     pub emoji_pings: Option<Vec<EmojiPingConfig>>,
     pub lurker_purge: Option<LurkerPurgeConfig>,
 }
