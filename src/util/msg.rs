@@ -7,12 +7,6 @@ use serenity::{
     Result,
 };
 
-pub struct Embed {
-    pub title: Option<String>,
-    pub descr: Option<String>,
-    pub color: Option<usize>,
-}
-
 pub fn send_text(
     ctx: &Context,
     channel_id: &ChannelId,

@@ -2,6 +2,7 @@ AppConfig (
     discord_token: "CHANGE_ME",
     guild_id: 0,
     owners: [],
+    log_channel_id: None,
     emoji_pings: None,
     lurker_purge: None,
 )
