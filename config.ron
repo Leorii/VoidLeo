@@ -3,6 +3,7 @@ AppConfig (
     guild_id: 0,
     owners: [],
     log_channel_id: None,
+    new_member_welcome: None,
     emoji_pings: None,
     lurker_purge: None,
 )
