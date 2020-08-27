@@ -15,7 +15,7 @@ use voidleo::{
 };
 
 #[group]
-#[commands(ping, lurker_purge)]
+#[commands(event, lurker_purge, ping)]
 struct General;
 
 fn main() {
@@ -26,7 +26,11 @@ fn main() {
         .expect("Error creating client");
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.prefix("::").owners(config.owners.clone()))
+            .configure(|c| {
+                c.prefix("$")
+                    .with_whitespace(true)
+                    .owners(config.owners.clone())
+            })
             .group(&GENERAL_GROUP),
     );
 
@@ -36,14 +40,19 @@ fn main() {
 }
 
 #[command]
-fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!")?;
-
-    Ok(())
+fn event(ctx: &mut Context, msg: &Message) -> CommandResult {
+    command::Event::new(ctx, msg).exec()
 }
 
 #[command]
 #[owners_only]
 fn lurker_purge(ctx: &mut Context, msg: &Message) -> CommandResult {
     command::LurkerPurge::new(ctx, msg).exec()
+}
+
+#[command]
+fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "Pong!")?;
+
+    Ok(())
 }
