@@ -4,6 +4,7 @@ use crate::{
     util::{Embed, Logger},
 };
 use chrono::Utc;
+use lazy_static::lazy_static;
 use serenity::{
     framework::standard::CommandResult,
     model::{
@@ -14,9 +15,17 @@ use serenity::{
     },
     prelude::Context,
 };
-use std::{sync::Arc, thread, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 const SECONDS_IN_DAY: u64 = 86_400;
+
+lazy_static! {
+    static ref THREAD_LOCK: Mutex<()> = Mutex::new(());
+}
 
 pub struct LurkerPurge<'a> {
     ctx: &'a Context,
@@ -26,32 +35,34 @@ pub struct LurkerPurge<'a> {
 
 impl LurkerPurge<'_> {
     pub fn on_ready(config: Arc<AppConfig>, ctx: Context) {
-        if let Some(ref purge_config) = config.lurker_purge {
-            let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
-            let channel_id = ChannelId(purge_config.channel_id);
+        let purge_config = match config.lurker_purge.as_ref() {
+            Some(x) => x,
+            None => return (),
+        };
+        let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
+        let channel_id = ChannelId(purge_config.channel_id);
 
-            // Only attempt to purge users if last message was a purge announcement
-            if let Some(Some(message)) = channel_id
-                .messages(&ctx, |retriever| retriever.limit(1))
-                .map_err(|e| {
-                    logger.error(&format!(
-                        "Unable to retrieve messages for LurkerPurge on_ready: {}",
-                        e
-                    ))
-                })
-                .ok()
-                .map(|x| x.into_iter().last())
-            {
-                let content = message
-                    .embeds
-                    .get(0)
-                    .map(|x| x.description.clone().unwrap_or(String::new()));
-                if content != Some(purge_config.message.clone()) {
-                    return;
-                }
-
-                wait_for_grace_period_and_do_purge(config, ctx, message);
+        // Only attempt to purge users if last message was a purge announcement
+        if let Some(Some(message)) = channel_id
+            .messages(&ctx, |retriever| retriever.limit(1))
+            .map_err(|e| {
+                logger.error(&format!(
+                    "Unable to retrieve messages for LurkerPurge on_ready: {}",
+                    e
+                ))
+            })
+            .ok()
+            .map(|x| x.into_iter().last())
+        {
+            let content = message
+                .embeds
+                .get(0)
+                .map(|x| x.description.clone().unwrap_or(String::new()));
+            if content != Some(purge_config.message.clone()) {
+                return;
             }
+
+            wait_for_grace_period_and_do_purge(config, ctx, message);
         }
     }
 }
@@ -71,70 +82,84 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
                 .log_channel_id
                 .map(|id| (self.ctx.clone(), ChannelId(id))),
         );
-        if let Some(ref purge_config) = self.config.lurker_purge {
-            let message = Embed::new(&self.ctx, &ChannelId(purge_config.channel_id))
-                .descr(&purge_config.message)
-                .send()
-                .map_err(|e| {
-                    logger.error(&format!("Could not send lurker_purge message: {}", &e));
-                    e
-                })?;
+        let purge_config = match self.config.lurker_purge.as_ref() {
+            Some(x) => x,
+            None => return Ok(()),
+        };
+        let message = Embed::new(&self.ctx, &ChannelId(purge_config.channel_id))
+            .descr(&purge_config.message)
+            .send()
+            .map_err(|e| {
+                logger.error(&format!("Could not send lurker_purge message: {}", &e));
+                e
+            })?;
 
-            message
-                .react(
-                    self.ctx,
-                    ReactionType::Custom {
-                        animated: false,
-                        id: EmojiId(731955992647958641),
-                        name: Some("happybagelday".to_string()),
-                    },
-                )
-                .map_err(|e| {
-                    logger.warn(&format!(
-                        "Could not add reaction to lurker_purge message: {}",
-                        &e
-                    ));
-                    e
-                })?;
+        message
+            .react(
+                self.ctx,
+                ReactionType::Custom {
+                    animated: false,
+                    id: EmojiId(731955992647958641),
+                    name: Some("happybagelday".to_string()),
+                },
+            )
+            .map_err(|e| {
+                logger.warn(&format!(
+                    "Could not add reaction to lurker_purge message: {}",
+                    &e
+                ));
+                e
+            })?;
 
-            wait_for_grace_period_and_do_purge(self.config.clone(), self.ctx.clone(), message);
-        }
+        wait_for_grace_period_and_do_purge(self.config.clone(), self.ctx.clone(), message);
 
         Ok(())
     }
 }
 
 fn wait_for_grace_period_and_do_purge(config: Arc<AppConfig>, ctx: Context, message: Message) {
-    if let Some(ref purge_config) = config.lurker_purge {
-        let sleep_duration = {
-            let elapsed_grace_period = Utc::now().timestamp() - message.timestamp.timestamp();
-            let remaining_grace_period =
-                (purge_config.grace_period_days * SECONDS_IN_DAY) - elapsed_grace_period as u64;
+    // we should only have one of these threads running at a time
+    match THREAD_LOCK.try_lock() {
+        Ok(_) => (),
+        Err(_) => return,
+    };
 
-            Duration::from_secs(remaining_grace_period)
-        };
+    let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
+    let purge_config = match config.lurker_purge.as_ref() {
+        Some(x) => x,
+        None => return (),
+    };
+    let sleep_duration = {
+        let elapsed_grace_period = Utc::now().timestamp() - message.timestamp.timestamp();
+        let remaining_grace_period =
+            (purge_config.grace_period_days * SECONDS_IN_DAY) - elapsed_grace_period as u64;
 
-        thread::spawn(move || {
-            thread::sleep(sleep_duration);
-            let reaction_users = ChannelId(config.lurker_purge.as_ref().unwrap().channel_id)
-                .reaction_users(
-                    &ctx,
-                    message.id,
-                    ReactionType::Custom {
-                        animated: false,
-                        id: EmojiId(731955992647958641),
-                        name: Some("happybagelday".to_string()),
-                    },
-                    None,
-                    None,
-                )
-                .unwrap();
+        Duration::from_secs(remaining_grace_period)
+    };
 
-            let inactive_members = kick_inactive_members(config.clone(), &ctx, &reaction_users);
+    thread::spawn(move || {
+        thread::sleep(sleep_duration);
+        let reaction_users = ChannelId(config.lurker_purge.as_ref().unwrap().channel_id)
+            .reaction_users(
+                &ctx,
+                message.id,
+                ReactionType::Custom {
+                    animated: false,
+                    id: EmojiId(731955992647958641),
+                    name: Some("happybagelday".to_string()),
+                },
+                None,
+                None,
+            )
+            .unwrap();
 
-            announce_results_of_purge(config.clone(), &ctx, &reaction_users, &inactive_members);
-        });
-    }
+        let inactive_members = kick_inactive_members(config.clone(), &ctx, &reaction_users);
+
+        announce_results_of_purge(config.clone(), &ctx, &reaction_users, &inactive_members);
+    })
+    .join()
+    .map_err(|e| logger.error(&format!("lurker_purge thread panic! {:?}", e)))
+    .ok();
 }
 
 fn kick_inactive_members(
