@@ -58,6 +58,7 @@ fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[owners_only]
 fn purge_channel_messages(ctx: &mut Context, msg: &Message) -> CommandResult {
     command::PurgeChannelMessages::new(ctx, msg).exec()
 }
