@@ -26,11 +26,7 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
-        let logger = Logger::new(
-            self.config
-                .log_channel_id
-                .map(|id| (ctx.clone(), ChannelId(id))),
-        );
+        let logger = Logger::new(&ctx);
 
         // Handles emoji pings if enabled in config
         if let Some(ref emoji_pings) = self.config.emoji_pings {
@@ -64,11 +60,7 @@ impl EventHandler for Handler {
     }
 
     fn guild_member_addition(&self, ctx: Context, _guild_id: GuildId, new_member: Member) {
-        let logger = Logger::new(
-            self.config
-                .log_channel_id
-                .map(|id| (ctx.clone(), ChannelId(id))),
-        );
+        let logger = Logger::new(&ctx);
 
         // Handles new member welcome messages if enabled in config
         if let Some(welcome_config) = &self.config.new_member_welcome {

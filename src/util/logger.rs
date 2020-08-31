@@ -1,4 +1,4 @@
-use crate::{color, util::msg};
+use crate::{color, util::msg, AppConfig};
 use log::{error, info, warn};
 use serenity::{model::id::ChannelId, prelude::Context};
 
@@ -8,9 +8,13 @@ pub enum Logger {
 }
 
 impl Logger {
-    pub fn new(with_log_channel: Option<(Context, ChannelId)>) -> Self {
-        if let Some((ctx, channel_id)) = with_log_channel {
-            Logger::WithLogChannel { ctx, channel_id }
+    pub fn new(ctx: &Context) -> Self {
+        let config = AppConfig::get_arc();
+        if let Some(channel_id) = config.log_channel_id {
+            Logger::WithLogChannel {
+                ctx: ctx.clone(),
+                channel_id: ChannelId(channel_id),
+            }
         } else {
             Logger::StdLogOnly
         }

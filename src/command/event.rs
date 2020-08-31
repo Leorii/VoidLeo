@@ -1,13 +1,13 @@
 use crate::{
     command::CustomCommand,
-    util::{Embed, Logger},
+    util::{self, Embed, Logger},
     AppConfig,
 };
 use serenity::{
     framework::standard::{CommandError, CommandResult},
     model::{
         channel::{Message, ReactionType},
-        id::{ChannelId, EmojiId},
+        id::EmojiId,
     },
     prelude::Context,
 };
@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub struct Event<'a> {
     ctx: &'a Context,
     msg: &'a Message,
-    config: Arc<AppConfig>,
+    _config: Arc<AppConfig>,
 }
 
 impl<'a> CustomCommand<'a> for Event<'a> {
@@ -24,18 +24,13 @@ impl<'a> CustomCommand<'a> for Event<'a> {
         Event {
             ctx,
             msg,
-            config: AppConfig::get_arc(),
+            _config: AppConfig::get_arc(),
         }
     }
 
     fn exec(&self) -> CommandResult {
         let channel_id = self.msg.channel_id;
-        let logger = Logger::new(
-            self.config
-                .log_channel_id
-                .as_ref()
-                .map(|&id| (self.ctx.clone(), ChannelId(id))),
-        );
+        let logger = Logger::new(self.ctx);
         let (role, emoji, message) = match self.parse_args()? {
             Some(x) => x,
             None => return Ok(()),
@@ -55,7 +50,7 @@ impl<'a> CustomCommand<'a> for Event<'a> {
         let emoji_id = {
             let mut id = emoji.split(':').nth(2).unwrap().to_string();
             id.pop();
-            EmojiId(id.parse().unwrap())
+            EmojiId(id.parse()?)
         };
 
         message
@@ -78,23 +73,14 @@ impl<'a> CustomCommand<'a> for Event<'a> {
 }
 
 impl Event<'_> {
-    fn get_arg_string(&self) -> String {
-        let raw_content = self.msg.content.clone();
-
-        if &raw_content[0..2] == "$ " && raw_content.len() > 7 {
-            raw_content[8..].to_string()
-        } else if raw_content.len() > 7 {
-            raw_content[7..].to_string()
-        } else {
-            "".to_string()
-        }
-    }
-
     fn parse_args(&self) -> Result<Option<(String, String, String)>, CommandError> {
         let usage = "Usage: `event [role] <reaction_emoji> <message>`";
         let channel_id = self.msg.channel_id;
 
-        let arg_string = self.get_arg_string();
+        let arg_string = match util::get_arg_string(self.msg, "event") {
+            Some(x) => x,
+            None => return Ok(None),
+        };
         let mut arg_iter = arg_string.split(' ');
 
         let mut role: String = "@everyone".to_string();

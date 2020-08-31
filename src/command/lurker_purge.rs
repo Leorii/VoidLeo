@@ -39,7 +39,7 @@ impl LurkerPurge<'_> {
             Some(x) => x,
             None => return (),
         };
-        let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
+        let logger = Logger::new(&ctx);
         let channel_id = ChannelId(purge_config.channel_id);
 
         // Only attempt to purge users if last message was a purge announcement
@@ -77,11 +77,7 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
     }
 
     fn exec(&self) -> CommandResult {
-        let logger = Logger::new(
-            self.config
-                .log_channel_id
-                .map(|id| (self.ctx.clone(), ChannelId(id))),
-        );
+        let logger = Logger::new(self.ctx);
         let purge_config = match self.config.lurker_purge.as_ref() {
             Some(x) => x,
             None => return Ok(()),
@@ -124,7 +120,7 @@ fn wait_for_grace_period_and_do_purge(config: Arc<AppConfig>, ctx: Context, mess
         Err(_) => return,
     };
 
-    let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
+    let logger = Logger::new(&ctx);
     let purge_config = match config.lurker_purge.as_ref() {
         Some(x) => x,
         None => return (),
@@ -167,8 +163,8 @@ fn kick_inactive_members(
     ctx: &Context,
     reaction_users: &Vec<User>,
 ) -> Vec<Member> {
-    let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
-    let inactive = inactive_members(config.clone(), &ctx, reaction_users);
+    let logger = Logger::new(ctx);
+    let inactive = inactive_members(config.clone(), ctx, reaction_users);
 
     for member in inactive.iter() {
         let user = member.user.read();
@@ -216,14 +212,14 @@ fn announce_results_of_purge(
     reaction_users: &Vec<User>,
     inactive_members: &Vec<Member>,
 ) {
-    let logger = Logger::new(config.log_channel_id.map(|id| (ctx.clone(), ChannelId(id))));
+    let logger = Logger::new(ctx);
     let channel_id = ChannelId(config.lurker_purge.as_ref().unwrap().channel_id);
     let kicked = inactive_members
         .iter()
         .map(|m| format!("  - [x] ~~{}~~", m.user.read().name.clone()))
         .collect::<Vec<_>>()
         .join("\n");
-    let survivors = active_members(config.clone(), &ctx, &reaction_users)
+    let survivors = active_members(config.clone(), ctx, reaction_users)
         .iter()
         .map(|m| format!("  - [·] **{}**", m.user.read().name.clone()))
         .collect::<Vec<_>>()
