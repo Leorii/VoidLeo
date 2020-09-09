@@ -1,6 +1,7 @@
 AppConfig (
     discord_token: "CHANGE_ME",
     guild_id: 0,
+    bot_user_id: 0,
     owners: [],
     log_channel_id: None,
     new_member_welcome: None,

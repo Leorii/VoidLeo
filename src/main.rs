@@ -40,6 +40,7 @@ fn main() {
 }
 
 #[command]
+#[owners_only]
 fn event(ctx: &mut Context, msg: &Message) -> CommandResult {
     command::Event::new(ctx, msg).exec()
 }

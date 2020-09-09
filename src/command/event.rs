@@ -7,16 +7,16 @@ use serenity::{
     framework::standard::{CommandError, CommandResult},
     model::{
         channel::{Message, ReactionType},
-        id::EmojiId,
+        id::{EmojiId, UserId},
     },
     prelude::Context,
 };
-use std::sync::Arc;
+use std::{sync::Arc, thread};
 
 pub struct Event<'a> {
     ctx: &'a Context,
     msg: &'a Message,
-    _config: Arc<AppConfig>,
+    config: Arc<AppConfig>,
 }
 
 impl<'a> CustomCommand<'a> for Event<'a> {
@@ -24,7 +24,7 @@ impl<'a> CustomCommand<'a> for Event<'a> {
         Event {
             ctx,
             msg,
-            _config: AppConfig::get_arc(),
+            config: AppConfig::get_arc(),
         }
     }
 
@@ -53,22 +53,38 @@ impl<'a> CustomCommand<'a> for Event<'a> {
             id.pop();
             EmojiId(id.parse()?)
         };
+        let reaction_type = ReactionType::Custom {
+            animated: false,
+            id: emoji_id,
+            name: Some(emoji.split(':').nth(1).unwrap().to_string()),
+        };
 
         message
-            .react(
-                self.ctx,
-                ReactionType::Custom {
-                    animated: false,
-                    id: emoji_id,
-                    name: Some(emoji.split(':').nth(1).unwrap().to_string()),
-                },
-            )
+            .react(self.ctx, reaction_type.clone())
             .map_err(|e| {
                 logger.warn(&format!("Could not add reaction to event message: {}", &e));
                 e
             })?;
 
         self.msg.delete(self.ctx)?;
+
+        thread::spawn({
+            let ctx = self.ctx.clone();
+            let user_id = UserId(self.config.bot_user_id);
+
+            move || {
+                thread::sleep(std::time::Duration::from_secs(60));
+
+                match channel_id.delete_reaction(ctx, message.id, Some(user_id), reaction_type) {
+                    Err(e) => logger.error(&format!(
+                        "Could not remove own reaction from event message: {}",
+                        &e
+                    )),
+                    _ => {}
+                }
+            }
+        });
+
         Ok(())
     }
 }
