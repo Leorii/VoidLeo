@@ -83,6 +83,7 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
             None => return Ok(()),
         };
         let message = Embed::new(&self.ctx, &ChannelId(purge_config.channel_id))
+            .content("@everyone")
             .descr(&purge_config.message)
             .send()
             .map_err(|e| {

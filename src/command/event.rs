@@ -37,9 +37,10 @@ impl<'a> CustomCommand<'a> for Event<'a> {
         };
 
         let message = Embed::new(self.ctx, &channel_id)
+            .content(&role)
             .descr(&format!(
-                "{}\n\n{}\n\nReact with {} if you can make it!",
-                role, message, emoji
+                "{}\n\nReact with {} if you can make it!",
+                message, emoji
             ))
             .send()
             .map_err(|e| {

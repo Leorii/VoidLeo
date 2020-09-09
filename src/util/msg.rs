@@ -9,6 +9,7 @@ use serenity::{
 pub struct Embed {
     ctx: Context,
     channel_id: ChannelId,
+    content: Option<String>,
     title: Option<String>,
     description: Option<String>,
     color: u32,
@@ -19,6 +20,7 @@ impl Embed {
         Embed {
             ctx: ctx.clone(),
             channel_id: channel_id.clone(),
+            content: None,
             title: None,
             description: None,
             color: color::GOLD,
@@ -40,9 +42,19 @@ impl Embed {
         self
     }
 
+    pub fn content(mut self, content: &str) -> Self {
+        self.content = Some(content.into());
+        self
+    }
+
     pub fn send(self) -> Result<Message> {
         self.channel_id.send_message(self.ctx.clone(), move |m| {
             m.tts(true);
+
+            if let Some(ref content) = self.content {
+                m.content(content);
+            }
+
             m.embed(|e| {
                 if let Some(title) = self.title {
                     e.title(title);
