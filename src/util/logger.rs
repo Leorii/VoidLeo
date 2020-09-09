@@ -13,7 +13,7 @@ impl Logger {
         if let Some(channel_id) = config.log_channel_id {
             Logger::WithLogChannel {
                 ctx: ctx.clone(),
-                channel_id: ChannelId(channel_id),
+                channel_id,
             }
         } else {
             Logger::StdLogOnly

@@ -15,7 +15,7 @@ use voidleo::{
 };
 
 #[group]
-#[commands(event, lurker_purge, ping, purge_channel_messages)]
+#[commands(event, ping, lurker_purge, purge_channel_messages)]
 struct General;
 
 fn main() {
@@ -40,22 +40,19 @@ fn main() {
 }
 
 #[command]
-#[owners_only]
 fn event(ctx: &mut Context, msg: &Message) -> CommandResult {
     command::Event::new(ctx, msg).exec()
+}
+
+#[command]
+fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+    command::Ping::new(ctx, msg).exec()
 }
 
 #[command]
 #[owners_only]
 fn lurker_purge(ctx: &mut Context, msg: &Message) -> CommandResult {
     command::LurkerPurge::new(ctx, msg).exec()
-}
-
-#[command]
-fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!")?;
-
-    Ok(())
 }
 
 #[command]

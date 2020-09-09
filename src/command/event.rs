@@ -7,7 +7,7 @@ use serenity::{
     framework::standard::{CommandError, CommandResult},
     model::{
         channel::{Message, ReactionType},
-        id::{EmojiId, UserId},
+        id::EmojiId,
     },
     prelude::Context,
 };
@@ -70,7 +70,7 @@ impl<'a> CustomCommand<'a> for Event<'a> {
 
         thread::spawn({
             let ctx = self.ctx.clone();
-            let user_id = UserId(self.config.bot_user_id);
+            let user_id = self.config.bot_user_id;
 
             move || {
                 thread::sleep(std::time::Duration::from_secs(60));

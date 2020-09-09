@@ -10,7 +10,7 @@ use serenity::{
     model::{
         channel::{Message, ReactionType},
         guild::Member,
-        id::{ChannelId, EmojiId, GuildId, RoleId},
+        id::EmojiId,
         user::User,
     },
     prelude::Context,
@@ -40,10 +40,10 @@ impl LurkerPurge<'_> {
             None => return (),
         };
         let logger = Logger::new(&ctx);
-        let channel_id = ChannelId(purge_config.channel_id);
 
         // Only attempt to purge users if last message was a purge announcement
-        if let Some(Some(message)) = channel_id
+        if let Some(Some(message)) = purge_config
+            .channel_id
             .messages(&ctx, |retriever| retriever.limit(1))
             .map_err(|e| {
                 logger.error(&format!(
@@ -82,7 +82,7 @@ impl<'a> CustomCommand<'a> for LurkerPurge<'a> {
             Some(x) => x,
             None => return Ok(()),
         };
-        let message = Embed::new(&self.ctx, &ChannelId(purge_config.channel_id))
+        let message = Embed::new(&self.ctx, &purge_config.channel_id)
             .content("@everyone")
             .descr(&purge_config.message)
             .send()
@@ -136,7 +136,11 @@ fn wait_for_grace_period_and_do_purge(config: Arc<AppConfig>, ctx: Context, mess
 
     thread::spawn(move || {
         thread::sleep(sleep_duration);
-        let reaction_users = ChannelId(config.lurker_purge.as_ref().unwrap().channel_id)
+        let reaction_users = config
+            .lurker_purge
+            .as_ref()
+            .unwrap()
+            .channel_id
             .reaction_users(
                 &ctx,
                 message.id,
@@ -189,7 +193,8 @@ fn inactive_members(
     reaction_users: &Vec<User>,
 ) -> Vec<Member> {
     let purge_config = config.lurker_purge.as_ref().unwrap();
-    GuildId(config.guild_id)
+    config
+        .guild_id
         .members_iter(&ctx)
         .map(|m| m.unwrap())
         .filter(|m| !reaction_users.iter().any(|r| r.id == m.user.read().id))
@@ -197,12 +202,7 @@ fn inactive_members(
             !purge_config
                 .immune_roles
                 .iter()
-                .map(|&x| RoleId(x))
-                .any(|immune_role| {
-                    m.roles
-                        .iter()
-                        .any(|&member_role| member_role == immune_role)
-                })
+                .any(|immune_role| m.roles.iter().any(|member_role| member_role == immune_role))
         })
         .collect()
 }
@@ -214,7 +214,7 @@ fn announce_results_of_purge(
     inactive_members: &Vec<Member>,
 ) {
     let logger = Logger::new(ctx);
-    let channel_id = ChannelId(config.lurker_purge.as_ref().unwrap().channel_id);
+    let channel_id = config.lurker_purge.as_ref().unwrap().channel_id;
     let kicked = inactive_members
         .iter()
         .map(|m| format!("  - [x] ~~{}~~", m.user.read().name.clone()))
@@ -250,7 +250,8 @@ fn active_members(
     reaction_users: &Vec<User>,
 ) -> Vec<Member> {
     let purge_config = config.lurker_purge.as_ref().unwrap();
-    GuildId(config.guild_id)
+    config
+        .guild_id
         .members_iter(&ctx)
         .map(|m| m.unwrap())
         .filter(|m| reaction_users.iter().any(|r| r.id == m.user.read().id))
@@ -258,12 +259,7 @@ fn active_members(
             !purge_config
                 .immune_roles
                 .iter()
-                .map(|&x| RoleId(x))
-                .any(|immune_role| {
-                    m.roles
-                        .iter()
-                        .any(|&member_role| member_role == immune_role)
-                })
+                .any(|immune_role| m.roles.iter().any(|member_role| member_role == immune_role))
         })
         .collect()
 }
