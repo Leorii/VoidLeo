@@ -14,6 +14,7 @@ pub struct AppConfig {
     pub guild_id: GuildId,
     pub bot_user_id: UserId,
     pub owners: HashSet<UserId>,
+    pub command_permissions: CommandPermissions,
 
     pub log_channel_id: Option<ChannelId>,
     pub new_member_welcome: Option<NewMemberWelcome>,

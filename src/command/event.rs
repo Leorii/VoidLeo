@@ -29,6 +29,10 @@ impl<'a> CustomCommand<'a> for Event<'a> {
     }
 
     fn exec(&self) -> CommandResult {
+        if !Event::authorized(self.msg) {
+            return Ok(());
+        }
+
         let channel_id = self.msg.channel_id;
         let logger = Logger::new(self.ctx);
         let (role, emoji, message) = match self.parse_args()? {
