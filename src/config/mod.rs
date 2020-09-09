@@ -39,7 +39,6 @@ pub struct LurkerPurgeConfig {
     pub grace_period_days: u64,
     pub immune_roles: Vec<u64>,
     pub message: String,
-    pub authorized_user_ids: Vec<u64>,
 }
 
 impl<'a> AppConfig {
